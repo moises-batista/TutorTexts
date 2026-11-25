@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mathnasium Quick-Text</title>
+    <style>
+      .hint {
+        font-size: 0.75rem;
+        color: var(--muted);
+        line-height: 1.5;
+        margin: 6px 0 0;
+      }
+      :root {
+        --bg: #f5f6fa;
+        --card: #fff;
+        --text: #1c1e26;
+        --muted: #667;
+        --accent: #d6001c;
+        --border: #d9dce5;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #14151a;
+          --card: #1e2028;
+          --text: #eceef4;
+          --muted: #9aa0b4;
+          --border: #343846;
+        }
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        background: var(--bg);
+        color: var(--text);
+        font-family:
+          system-ui,
+          -apple-system,
+          Segoe UI,
+          sans-serif;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        display: grid;
+        gap: 14px;
+      }
+      h1 {
+        font-size: 1.4rem;
+        margin: 8px 0 0;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin: 10px 0 4px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 10px;
+        font: inherit;
+        color: var(--text);
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+      }
+      textarea {
+        min-height: 80px;
+        resize: vertical;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+      button {
+        padding: 11px 16px;
+        font: inherit;
+        font-weight: 600;
+        border: 0;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+        margin-top: 12px;
+      }
+      button.secondary {
+        background: transparent;
+        color: var(--text);
+        border: 1px solid var(--border);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: wait;
+      }
+      details summary {
+        cursor: pointer;
+        font-weight: 600;
+      }
+      .status {
+        font-size: 0.85rem;
+        color: var(--muted);
+        margin-top: 8px;
+        min-height: 1.2em;
+      }
+      .hidden {
+        display: none;
+      }
+      #output {
+        min-height: 120px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Mathnasium Quick-Text</h1>
+
+      <details class="card" id="ai-card">
+        <summary>
+          Auto-fill from notes (optional, needs a free Groq key)
+        </summary>
+        <label for="apikey"
+          >Your Groq API key (saved only in this browser)</label
+        >
+        <input
+          id="apikey"
+              <p class="hint">
+      <b>How to get a free key:</b> go to <a href="https://console.groq.com" target="_blank" rel="noopener">console.groq.com</a>
+      and sign up or log in, open <b>API Keys</b>, click <b>Create API Key</b>, give it any name,
+      then copy it and paste it above. It's only shown once, so copy it right away.
+      The key stays in this browser and is never shared with anyone else.
+    </p>
+
+      
+        <label for="notes">Paste your session notes</label>
+        <textarea
+          id="notes"
+          placeholder="Sam did fractions, 5 pages, great focus"
+        ></textarea>
+        <button id="fill-btn" type="button">Fill the form from notes</button>
+        <div class="status" id="ai-status"></div>
+      </details>
+
+      <div class="card">
+        <label for="tutor">Your name</label>
+        <input id="tutor" value="Moises" />
+
+        <label for="student">Student's first name</label>
+        <input id="student" />
+
+        <label for="topics">Topics worked on</label>
+        <input id="topics" placeholder="fractions and decimals" />
+
+        <div class="row">
+          <div>
+            <label for="pages">Pages completed (number)</label>
+            <input id="pages" type="number" min="0" placeholder="5" />
+          </div>
+          <div>
+            <label for="hw">Homework today?</label>
+            <select id="hw">
+              <option value="no" selected>No</option>
+              <option value="yes">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row hidden" id="hw-details">
+          <div>
+            <label for="hw-checked">Homework was</label>
+            <select id="hw-checked">
+              <option>checked</option>
+              <option>partially checked</option>
+            </select>
+          </div>
+          <div>
+            <label for="hw-done">and</label>
+            <select id="hw-done">
+              <option>completed</option>
+              <option>not completed</option>
+            </select>
+          </div>
+        </div>
+
+        <label for="detail"
+          >Session details (behavior, focus, next steps)</label
+        >
+        <textarea
+          id="detail"
+          placeholder="Sam stayed focused. Next time we'll practice adding fractions."
+        ></textarea>
+
+        <button id="make-btn" type="button">Make the text</button>
+      </div>
+
+      <div class="card">
+        <label for="output">Your text</label>
+        <textarea id="output" readonly></textarea>
+        <button id="copy-btn" type="button" class="secondary">
+          Copy to clipboard
+        </button>
+        <div class="status" id="copy-status"></div>
+      </div>
+    </div>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+
+      // ---------- Saved settings (this browser only) ----------
+      $("apikey").value = localStorage.getItem("groq_key") || "";
+      $("tutor").value = localStorage.getItem("tutor_name") || $("tutor").value;
+      $("apikey").addEventListener("change", () =>
+        localStorage.setItem("groq_key", $("apikey").value.trim()),
+      );
+      $("tutor").addEventListener("change", () =>
+        localStorage.setItem("tutor_name", $("tutor").value.trim()),
+      );
+
+      $("hw").addEventListener("change", () => {
+        $("hw-details").classList.toggle("hidden", $("hw").value !== "yes");
+      });
+
+      // ---------- Build the message ----------
+      function pagesLabel(n) {
+        const v = String(n).trim();
+        if (/^\d+$/.test(v))
+          return Number(v) === 1 ? "1 page" : `${Number(v)} pages`;
+        return v;
+      }
+
+      function makeText() {
+        const tutor = $("tutor").value.trim() || "your tutor";
+        const student = $("student").value.trim();
+        if (!student) {
+          $("output").value = "Please enter the student's first name.";
+          return;
+        }
+
+        const topics = $("topics").value.trim();
+        const pages = $("pages").value.trim();
+        const hasHw = $("hw").value === "yes";
+        const detail = $("detail").value.trim();
+
+        const hwPhrase = hasHw ? "did have homework" : "did not have homework";
+        const status =
+          pages ?
+            `${student} completed ${pagesLabel(pages)} and ${hwPhrase}.`
+          : `${student} ${hwPhrase}.`;
+        const hwSentence =
+          hasHw ?
+            ` The homework was ${$("hw-checked").value} and ${$("hw-done").value}.`
+          : "";
+
+        const parts = [
+          `Hi, this is ${tutor} from Mathnasium and I worked with ${student} today!`,
+          topics ? `${student} worked on ${topics}.` : "",
+          status + hwSentence,
+          detail,
+          "Have a great night!",
+        ].filter(Boolean);
+
+        $("output").value = parts.join(" ");
+        $("copy-status").textContent = "";
+      }
+      $("make-btn").addEventListener("click", makeText);
+
+      // ---------- Copy ----------
+      $("copy-btn").addEventListener("click", async () => {
+        const text = $("output").value;
+        if (!text) return;
+        try {
+          await navigator.clipboard.writeText(text);
+          $("copy-status").textContent = "Copied!";
+        } catch {
+          $("output").select();
+          $("copy-status").textContent =
+            "Press Ctrl+C to copy (clipboard was blocked).";
+        }
+      });
+
+      // ---------- Optional AI auto-fill (Groq) ----------
+      const API = "https://api.groq.com/openai/v1";
+      const PREFERRED = [
+        "llama-3.3-70b-versatile",
+        "openai/gpt-oss-120b",
+        "openai/gpt-oss-20b",
+        "llama-3.1-8b-instant",
+      ];
+      let candidates = null;
+      let workingModel = null;
+
+      const PROMPT = (
+        notes,
+      ) => `Extract session info from the tutoring notes below.
+Return ONLY a JSON object with exactly these keys:
+- "student": the student's first name (string)
+- "topics": concise list of math topics worked on (string)
+- "pages_completed": number of pages completed as digits only, like "5". If a range like 12-14 is given, count the pages in it (12-14 is "3"). Empty string if not mentioned.
+- "had_homework": true ONLY if the notes explicitly mention homework, otherwise false (boolean)
+- "homework_checked": "checked" or "partially checked" if homework is mentioned, otherwise "" (string)
+- "homework_completed": true if the homework was completed, false if not (boolean)
+- "session_detail": 1 to 2 sentences about ONLY the student's behavior, focus, effort, and next steps. Do NOT mention the topics, pages, or homework, since those are reported separately. If the notes say nothing about behavior, focus, effort, or next steps, return an empty string.
+
+Notes: ${notes}`;
+
+      async function groq(path, key, body) {
+        const res = await fetch(API + path, {
+          method: body ? "POST" : "GET",
+          headers: {
+            Authorization: `Bearer ${key}`,
+            "Content-Type": "application/json",
+          },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        if (!res.ok) {
+          const err = new Error(`Groq error ${res.status}`);
+          err.status = res.status;
+          try {
+            err.detail = (await res.json()).error?.message;
+          } catch {}
+          throw err;
+        }
+        return res.json();
+      }
+
+      async function loadCandidates(key) {
+        const data = await groq("/models", key);
+        const ids = data.data
+          .map((m) => m.id)
+          .filter((id) => !/whisper|tts|guard|playai/.test(id));
+        return [
+          ...PREFERRED.filter((m) => ids.includes(m)),
+          ...ids.filter((m) => !PREFERRED.includes(m)),
+        ];
+      }
+
+      async function askGroq(notes, key) {
+        if (!candidates) candidates = await loadCandidates(key);
+        const models = workingModel ? [workingModel] : candidates;
+        let lastErr;
+        for (const model of models) {
+          try {
+            $("ai-status").textContent = `Trying ${model}...`;
+            const data = await groq("/chat/completions", key, {
+              model,
+              temperature: 0.1,
+              response_format: { type: "json_object" },
+              messages: [{ role: "user", content: PROMPT(notes) }],
+            });
+            workingModel = model;
+            return JSON.parse(data.choices[0].message.content);
+          } catch (e) {
+            lastErr = e;
+            if (e.status === 404 || e.status === 403) continue; // model not usable, try next
+            throw e;
+          }
+        }
+        throw lastErr || new Error("No usable models for this key.");
+      }
+
+      $("fill-btn").addEventListener("click", async () => {
+        const key = $("apikey").value.trim();
+        const notes = $("notes").value.trim();
+        if (!key) {
+          $("ai-status").textContent = "Paste your Groq API key first.";
+          return;
+        }
+        if (!notes) {
+          $("ai-status").textContent = "Paste your notes first.";
+          return;
+        }
+
+        localStorage.setItem("groq_key", key);
+        $("fill-btn").disabled = true;
+        try {
+          const d = await askGroq(notes, key);
+          $("student").value = d.student || "";
+          $("topics").value = d.topics || "";
+          $("pages").value =
+            /^\d+$/.test(String(d.pages_completed || "").trim()) ?
+              d.pages_completed
+            : "";
+          // Default to no homework unless the notes actually mention it
+          const hw = !!d.had_homework && /homework|\bhw\b/i.test(notes);
+          $("hw").value = hw ? "yes" : "no";
+          $("hw-details").classList.toggle("hidden", !hw);
+          if (hw) {
+            $("hw-checked").value =
+              d.homework_checked === "partially checked" ?
+                "partially checked"
+              : "checked";
+            $("hw-done").value =
+              d.homework_completed ? "completed" : "not completed";
+          }
+          $("detail").value = d.session_detail || "";
+          makeText();
+          $("ai-status").textContent =
+            "Filled in. Check everything, then copy.";
+        } catch (e) {
+          $("ai-status").textContent =
+            `Failed: ${e.detail || e.message}. You can still fill the form by hand.`;
+        } finally {
+          $("fill-btn").disabled = false;
+        }
+      });
+    </script>
+  </body>
+</html>
